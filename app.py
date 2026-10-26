@@ -17,14 +17,15 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    /* Emerald & Slate Modern Theme */
+    /* Midnight Emerald Dark Theme for Custom Elements */
     .dashboard-header {
-        background: linear-gradient(135deg, #047857 0%, #064E3B 100%);
+        background: linear-gradient(135deg, #064E3B 0%, #022C22 100%);
         color: white;
         padding: 1.5rem;
         border-radius: 12px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid #047857;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -33,43 +34,43 @@ st.markdown(
         margin: 0;
         font-size: 1.75rem;
         font-weight: 600;
-        color: white;
+        color: #D1FAE5;
         letter-spacing: -0.025em;
     }
     .badge-all {
-        background-color: #F1F5F9;
-        color: #334155;
+        background-color: #1E293B;
+        color: #94A3B8;
         padding: 0.5rem 1rem;
         border-radius: 9999px;
         font-weight: 700;
         font-size: 0.875rem;
-        border: 1px solid #CBD5E1;
+        border: 1px solid #334155;
     }
     .badge-overdue {
-        background-color: #FEF2F2;
-        color: #DC2626;
+        background-color: #450A0A;
+        color: #FCA5A5;
         padding: 0.5rem 1rem;
         border-radius: 9999px;
         font-weight: 700;
         font-size: 0.875rem;
-        border: 1px solid #FECACA;
+        border: 1px solid #7F1D1D;
     }
-    /* KPI Metric Cards */
+    /* KPI Metric Cards Dark Styling */
     div[data-testid="stMetric"] {
-        background-color: white;
+        background-color: #1E293B;
         border-left: 4px solid #10B981;
         border-radius: 8px;
         padding: 1rem;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
     div[data-testid="stMetricValue"] {
-        font-size: 1.5rem !important;
+        font-size: 1.6rem !important;
         font-weight: 700 !important;
-        color: #0F172A;
+        color: #F8FAFC !important;
     }
     div[data-testid="stMetricLabel"] {
         font-size: 0.875rem !important;
-        color: #64748B;
+        color: #94A3B8 !important;
         font-weight: 600;
     }
     </style>
@@ -104,9 +105,7 @@ SHEET_CONFIG = {
 
 STATUS_LIST = ["CP", "CF", "P", "TBS", "TP", "ETS", "OTH", "CBW", "CEF", "PBW", "CBWPM", "RRR", "BWF"]
 COST_BUCKETS = ["Less than 100", "0 - 200", "100 - 500", "200 - 500", "500 - 1000", "1000 - 2500", "2500 - 5000", "5000 - 10000", "More than 10000"]
-OVERDUE_BUCKETS = ["<2 years", "2-5 years", "5-10 years", "More than 10 years"]
 
-# Pre-injected schemes specifically requested
 REQUIRED_SCHEMES = [
     "SCP- CHECKDAM", "SCP-BOREWELL", "SCP-LIS", 
     "TSP-BOREWELL", "TSP-CHECKDAM", "TSP-LIS"
@@ -160,13 +159,12 @@ def load_workbook_data(file_source) -> tuple[pd.DataFrame, pd.DataFrame]:
     invalid_divs = {"", "ವಿಭಾಗದ ಹೆಸರು", "ವಿಭಾಗ", "2", "F", "S", "nan", "None"}
     dataset = dataset[~dataset["Col2"].isin(invalid_divs)].copy()
 
+    # Robust Numeric Conversion
     num_cols = ["Col9", "Col15", "Col17", "Col23", "Col24", "Col25", "Col26", "Col27"]
     for c in num_cols: dataset[c] = pd.to_numeric(dataset[c], errors="coerce").fillna(0.0)
 
     for c in ["Col12", "Col19", "Col21", "Col22"]:
         dataset[c + "_dt"] = pd.to_datetime(dataset[c], dayfirst=True, errors="coerce")
-
-    dataset["Col31"] = dataset["Col12"].fillna("").astype(str).str.strip().str[-4:]
 
     today_ts = pd.Timestamp(date.today())
     actual_empty = dataset["Col22"].fillna("").astype(str).str.strip().eq("") & dataset["Col22_dt"].isna()
@@ -187,7 +185,6 @@ def load_workbook_data(file_source) -> tuple[pd.DataFrame, pd.DataFrame]:
 def generate_demo_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     rng = np.random.default_rng(42)
     divs = ["ಬೆಂಗಳೂರು ವಿಭಾಗ", "ಮೈಸೂರು ವಿಭಾಗ", "ಮಂಡ್ಯ ವಿಭಾಗ"]
-    # Include the requested missing schemes directly into demo data
     schemes = ["MOT", "NT"] + REQUIRED_SCHEMES + ["PMKSY"]
     
     n = 300
@@ -198,18 +195,22 @@ def generate_demo_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     df["Col6"] = rng.choice(schemes, n)
     df["Col8"] = rng.choice(["S", "F"], n, p=[0.6, 0.4])
     df["Col9"] = np.round(rng.uniform(50, 8000, n), 2)
-    df["Col25"] = np.round(df["Col9"] * rng.uniform(0.3, 0.6, n), 2) # Cum Exp
-    df["Col27"] = np.round(df["Col9"] - df["Col25"], 2) # Balance
+    df["Col25"] = np.round(df["Col9"] * rng.uniform(0.3, 0.6, n), 2)
+    df["Col27"] = np.round(df["Col9"] - df["Col25"], 2)
     df["Col28"] = rng.choice(STATUS_LIST, n)
     df["Col21_dt"] = pd.to_datetime(rng.choice(pd.date_range("2023-01-01", "2027-12-31"), n))
     df["Col22_dt"] = pd.Series([pd.NaT if s == "P" else pd.Timestamp("2025-10-01") for s in df["Col28"]])
     df["Col32"] = np.where(df["Col22_dt"].isna() & (df["Col28"] == "P") & (df["Col21_dt"] > pd.Timestamp(date.today())), 1, 0)
 
+    # Initialize remaining numerical columns safely to prevent ValueError
+    for col in ["Col15", "Col17", "Col23", "Col24", "Col26"]:
+        df[col] = 0.0
+
     abs_rows = [{"abs_div": "ದಕ್ಷಿಣ ವಲಯ", "abs_scheme": s, "abs_alloc": 2000.0} for s in ["-MOT", "-NT", "ವಿಶೇಷ ಘಟಕ ಯೋಜನೆ", "ಗಿರಿಜನ ಉಪಯೋಜನೆ"]]
     return df, pd.DataFrame(abs_rows)
 
 # ==========================================
-# AGGREGATION ENGINE
+# AGGREGATION ENGINE (ERROR-PROOFED)
 # ==========================================
 def calc_allocation(abs_df: pd.DataFrame, div_name: str, regex_pattern: str) -> float:
     if abs_df.empty or regex_pattern == "NO_MATCH": return 0.0
@@ -229,16 +230,22 @@ def compute_row_metrics(df_slice: pd.DataFrame, overdue_only: bool, col1_label: 
     active_df = df_slice[df_slice["Col32"] == 1] if overdue_only else df_slice
     a_sf = active_df["Col8"].str.upper()
     
-    cS = int((a_sf == "S").sum()); sS = round(float(active_df.loc[a_sf == "S", "Col9"].sum()), 2)
-    cF = int((a_sf == "F").sum()); sF = round(float(active_df.loc[a_sf == "F", "Col9"].sum()), 2)
+    def safe_sum(series):
+        """Prevents ValueError by strictly enforcing numeric type during sum operations"""
+        return round(pd.to_numeric(series, errors='coerce').fillna(0).sum(), 2)
+
+    cS = int((a_sf == "S").sum())
+    sS = safe_sum(active_df.loc[a_sf == "S", "Col9"])
+    cF = int((a_sf == "F").sum())
+    sF = safe_sum(active_df.loc[a_sf == "F", "Col9"])
     st_counts = [int((active_df["Col28"].str.upper() == s).sum()) for s in STATUS_LIST]
 
     return [
         col1_label, col2_label, cS, sS, cF, sF, cS + cF, round(sS + sF, 2),
-        round(float(active_df["Col15"].sum()), 2), round(float(active_df["Col17"].sum()), 2), alloc_display,
-        round(float(active_df["Col23"].sum()), 2), round(float(active_df["Col24"].sum()), 2),
-        round(float(active_df["Col25"].sum()), 2), round(float(active_df["Col26"].sum()), 2),
-        round(float(active_df["Col27"].sum()), 2), *st_counts, pct_overdue, pct_special
+        safe_sum(active_df["Col15"]), safe_sum(active_df["Col17"]), alloc_display,
+        safe_sum(active_df["Col23"]), safe_sum(active_df["Col24"]),
+        safe_sum(active_df["Col25"]), safe_sum(active_df["Col26"]),
+        safe_sum(active_df["Col27"]), *st_counts, pct_overdue, pct_special
     ]
 
 def build_table(base_df: pd.DataFrame, abs_df: pd.DataFrame, overdue_only: bool) -> pd.DataFrame:
@@ -248,19 +255,16 @@ def build_table(base_df: pd.DataFrame, abs_df: pd.DataFrame, overdue_only: bool)
     unique_schemes = sorted([s for s in base_df["Col6"].unique() if s])
     unique_divs = sorted([d for d in base_df["Col2"].unique() if d])
 
-    # 1. Zone Details
     for v_scheme in unique_schemes:
         s_alloc = round(calc_allocation(abs_df, "ದಕ್ಷಿಣ ವಲಯ", get_regex(v_scheme)), 2)
         disp = f"{s_alloc} (Comb. SCP)" if v_scheme.startswith("SCP") else f"{s_alloc} (Comb. TSP)" if v_scheme.startswith("TSP") else s_alloc
         records.append((1, "Zone", 1, v_scheme, compute_row_metrics(base_df[base_df["Col6"] == v_scheme], overdue_only, "ದಕ್ಷಿಣ ವಲಯ", v_scheme, disp)))
 
-    # 2. Zone Total
     active_rgx = sorted({get_regex(s) for s in unique_schemes})
     tot_alloc = round(sum(calc_allocation(abs_df, "ದಕ್ಷಿಣ ವಲಯ", r) for r in active_rgx), 2)
     records.append((1, "Zone", 2, "ZZZ", compute_row_metrics(base_df, overdue_only, "", "👉 ದಕ್ಷಿಣ ವಲಯ ಒಟ್ಟು", tot_alloc)))
     records.append((2, "Spacer", 2, "AAA", ["ವಿಭಾಗವಾರು"] + [""] * 31))
 
-    # 3. Division Details
     for v_div in unique_divs:
         div_df = base_df[base_df["Col2"] == v_div]
         div_schemes = sorted([s for s in div_df["Col6"].unique() if s])
@@ -273,7 +277,6 @@ def build_table(base_df: pd.DataFrame, abs_df: pd.DataFrame, overdue_only: bool)
         div_tot_alloc = round(sum(calc_allocation(abs_df, v_div, r) for r in div_rgx), 2)
         records.append((3, v_div, 2, "ZZZ", compute_row_metrics(div_df, overdue_only, "", f"👉 {v_div} ಒಟ್ಟು", div_tot_alloc)))
 
-    # Sort and Assign Sl. No
     valid = [r for r in records if r[0] == 2 or (isinstance(r[4][6], (int, float)) and r[4][6] > 0)]
     valid.sort(key=lambda x: (x[0], x[1], x[2], x[3]))
     
@@ -300,12 +303,9 @@ if not uploaded_file: st.sidebar.info("Currently viewing generated Demo Data.")
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🎯 Primary Filters")
 
-# Prepare comprehensive dropdown options
 all_divs = sorted([x for x in dataset["Col2"].unique() if x])
 all_sf = sorted([x for x in dataset["Col8"].unique() if x])
 all_status = sorted([x for x in dataset["Col28"].unique() if x])
-
-# Ensure required schemes are ALWAYS present in the scheme dropdown, unioned with actual data
 dataset_schemes = [x for x in dataset["Col6"].unique() if x]
 combined_schemes = sorted(list(set(dataset_schemes + REQUIRED_SCHEMES)))
 
@@ -334,15 +334,14 @@ st.markdown(
     f"""
     <div class="dashboard-header">
         <div>
-            <h1>💧 Minor Irrigation Dashboard (South Zone)</h1>
-            <span style="font-size: 0.9rem; opacity: 0.9;">Karnataka State Irrigation Reporting</span>
+            <h1>💧 Minor Irrigation Dashboard</h1>
+            <span style="color: #6EE7B7; font-size: 0.95rem;">South Zone Data Engine | Abstract Reporting</span>
         </div>
         <div><span class="{badge_class}">SHOWING: {mode_lbl}</span></div>
     </div>
     """, unsafe_allow_html=True
 )
 
-# Advanced Filters Accordion
 with st.expander("📍 Location, Cost & Advanced Attributes"):
     c1, c2, c3, c4 = st.columns(4)
     with c1: f_dist = st.multiselect("ಜಿಲ್ಲೆ (District)", sorted([x for x in dataset["Col3"].unique() if x]), key="f_dist")
@@ -355,7 +354,7 @@ with st.expander("📍 Location, Cost & Advanced Attributes"):
     with c6: f_aee = st.multiselect("A.E.E.", sorted([x for x in dataset["Col30"].unique() if x]), key="f_aee")
     with c7: st.caption("*(Date/Aging filters omitted for brevity, can be expanded similarly)*")
 
-# Filter execution logic
+# Filter logic
 mask = pd.Series(True, index=dataset.index)
 if f_div: mask &= dataset["Col2"].isin(f_div)
 if f_scheme: mask &= dataset["Col6"].isin(f_scheme)
@@ -383,9 +382,6 @@ if f_cost:
 
 filtered_base = dataset[mask].copy()
 
-# ==========================================
-# METRICS & DATAFRAME RENDER
-# ==========================================
 kpi_df = filtered_base[filtered_base["Col32"] == 1] if st.session_state.overdue_mode else filtered_base
 m1, m2, m3, m4, m5 = st.columns(5)
 m1.metric("ಒಟ್ಟು ಕಾಮಗಾರಿಗಳು (Total Works)", f"{len(kpi_df):,}")
@@ -396,17 +392,22 @@ m5.metric("Overdue Works (Active)", f"{int(filtered_base['Col32'].sum()):,}")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Table styling function for Emerald/Slate aesthetic
+# Dark Mode Table Highlighting
 def highlight_rows(row):
     label = str(row["ಲೆಕ್ಕಶೀರ್ಷಿಕೆ"])
     div_label = str(row["ವಲಯ / ವಿಭಾಗ"])
+    
+    # Base dark row aesthetics
+    base_style = "background-color: #1E293B; color: #E2E8F0; border-bottom: 1px solid #334155;"
+    
     if div_label == "ವಿಭಾಗವಾರು":
-        return ["background-color: #334155; color: white; font-weight: bold; font-size: 1.05em;"] * len(row)
+        return ["background-color: #0F172A; color: #10B981; font-weight: bold; border-top: 2px solid #10B981;"] * len(row)
     if "👉" in label and "ದಕ್ಷಿಣ ವಲಯ" in label:
-        return ["background-color: #047857; color: white; font-weight: bold;"] * len(row)
+        return ["background-color: #064E3B; color: #D1FAE5; font-weight: bold; border-top: 1px solid #10B981;"] * len(row)
     if "👉" in label:
-        return ["background-color: #E2E8F0; color: #0F172A; font-weight: bold;"] * len(row)
-    return [""] * len(row)
+        return ["background-color: #334155; color: #F8FAFC; font-weight: bold; border-top: 1px solid #475569;"] * len(row)
+        
+    return [base_style] * len(row)
 
 result_df = build_table(filtered_base, abs_df, st.session_state.overdue_mode)
 
